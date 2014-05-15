@@ -13,6 +13,8 @@ class Card():
 	def __init__(self, info):
 		self.num = info[0]
 		self.color = info[1]
+		self.notColors = set()
+		self.notNums = set()
 
 	def __str__(self):
 		return str(self.num) + self.color
@@ -49,7 +51,7 @@ class Hanabi():
 	numBombs = 0
 
 	def __init__(self):
-		self.deck = list(zip(CARDNUMS, CARDCOLS))
+		self.deck = [Card(c) for c in zip(CARDNUMS, CARDCOLS)]
 
 	def shuffle(self):
 		random.shuffle(self.deck)
@@ -78,7 +80,7 @@ class Hanabi():
 
 	def viewHands(self):
 		for p in self.players:
-			print(p, self.hands[p])
+			print(p + ':', ' '.join([str(c) for c in self.hands[p]]))
 
 	def notify(self, player, msg):
 		print(player + ':', msg)
@@ -107,5 +109,5 @@ h = Hanabi()
 h.addPlayer('Frank')
 h.addPlayer('Alison')
 h.addPlayer('Arthur')
-self.playGame()
+h.playGame()
 h.viewHands()
