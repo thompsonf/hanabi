@@ -47,8 +47,17 @@ class Hanabi():
 		for p in self.players:
 			print(p, self.hands[p])
 
-#h = Hanabi()
-#h.addPlayer('Frank')
-#h.addPlayer('Alison')
-#h.addPlayer('Arthur')
-#h.viewHands()
+	def notify(self, player, msg):
+		print(player + ':', msg)
+
+	def getInput(self, player):
+		pIn = input()
+		while not self.isValid(pIn):
+			self.notify(p, "invalid input!")
+
+h = Hanabi()
+h.addPlayer('Frank')
+h.addPlayer('Alison')
+h.addPlayer('Arthur')
+self.startGame()
+h.viewHands()
