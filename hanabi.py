@@ -87,13 +87,28 @@ class Hanabi():
 
 	#asks player for input continually until valid move is given
 	#returns easily-parseable action of TBD formatting
-	def getInput(self, player):
-		pIn = input()
-		while not self.isValid(pIn):
-			self.notify(p, "invalid input!")
-		return pIn
+	def getAction(self, player):
+		inp = input()
+		parsed = self.validateAndParseInput(pIn)
+		while not parsed:
+			inp = input()
+			parsed = self.validateAndParseInput(pIn)
+		return parsed
 
-	def doAction(player, action):
+	def validateAndParseInput(self, player, inp):
+		action = []
+		inSplit = inp.lower().split()
+		if len(inSplit) < 2:
+			return False
+		if inSplit[0] == "discard" or inSplit[0] == "d":
+			action.append("discard")
+		elif inSplit[0] == "play" or inSplit[0] == "p":
+			action.append("play")
+		elif inSplit[0] == "tell" or inSplit[0] == "t":
+			action.append("tell")
+
+
+	def doAction(self, player, action):
 		if action[0] == "discard":
 			pass
 		elif action[0] == "play":
@@ -103,7 +118,7 @@ class Hanabi():
 		else:
 			print("OOPS!")
 			pass
-
+ 
 
 h = Hanabi()
 h.addPlayer('Frank')
