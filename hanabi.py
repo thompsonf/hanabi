@@ -44,19 +44,28 @@ class Card():
         #should fix this later
         self.possibNums = {num}
 
+    #player holding this card was just told info, which is a number
+    #or a color. Update possible numbers and colors for this card
+    #based on info received
+    #return True if card was the same number/color as info received
+    #return False otherwise
     def tellAbout(self, info):
         #note: need to check if info is int first to avoid exception
         #from checking if an int is in a string
         if info in range(1,6):
             if self.num == info:
                 self.setNum(info)
+                return True
             else:
                 self.setNotNum(info)
+                return False
         elif info in "rbygw":
             if self.color == info:
                 self.setColor(info)
+                return True
             else:
                 self.setNotColor(info)
+                return False
         else:
             print("OOPS!")
 
@@ -197,9 +206,22 @@ class Hanabi():
                 self.numTokens -= 1
             else:
                 print("OOPS!")
-            for card in self.hands[action[1]]:
-                card.tellAbout(action[2])
-            self.notifyAll(player + " told " + action[1] + " about " + str(action[2]))
+            cardNumsToldAbout = []
+            for num, card in enumerate(self.hands[action[1]]):
+                if card.tellAbout(action[2]):
+                    cardNumsToldAbout.append(num)
+            
+            notifyStr = player + " tells " + action[1] + " that card"
+            if len(cardNumsToldAbout) > 1:
+                notifyStr += 's'
+            notifyStr += ' ' + ' '.join([str(n+1) for n in cardNumsToldAbout])
+            if len(cardNumsToldAbout) > 1:
+                notifyStr += " are "
+            else:
+                notifyStr += " is "
+            notifyStr += str(action[2])
+
+            self.notifyAll(notifyStr)
         else:
             print("OOPS!")
             pass
@@ -276,8 +298,8 @@ class Hanabi():
         self.endGame()
 
 
-h = Hanabi()
-h.addPlayer('Frank')
-h.addPlayer('Alison')
-h.addPlayer('Arthur')
-h.playGame()
+#h = Hanabi()
+#h.addPlayer('Frank')
+#h.addPlayer('Alison')
+#h.addPlayer('Arthur')
+#h.playGame()
