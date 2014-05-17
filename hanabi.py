@@ -1,4 +1,8 @@
 import random
+import socket
+
+HOST = ""
+PORT = 8888
 
 CARDNUMS = [1]*15 + [2]*10 + [3]*10 + [4]*10 + [5]*5
 CARDCOLS = 'rbygw'*10
@@ -107,8 +111,9 @@ class Hanabi():
         else:
             return None
 
-    def addPlayer(self, name):
+    def addPlayer(self, name, conn):
         self.players.append(name.lower())
+        self.playerSockets[name.lower()] = conn
 
     def randomizePlayers(self):
         random.shuffle(self.players)
@@ -118,12 +123,11 @@ class Hanabi():
             print(p + ':', ' '.join([str(c) for c in self.hands[p]]))
 
     def notifyPlayer(self, player, msg):
-        print(player + ':', msg)
+        self.playerSockets[player].send((msg + '\n').encode())
 
     def notifyAll(self, msg):
-        #for player in self.players:
-        #    self.notifyPlayer(player, msg)
-        print("All:", msg)
+        for player in self.players:
+            self.notifyPlayer(player, msg)
 
     #asks player for input continually until valid move is given
     #returns easily-parseable action of TBD formatting
@@ -137,7 +141,8 @@ class Hanabi():
         return parsed
 
     def requestMove(self, player):
-        return input()
+        self.playerSockets[player].send("Please enter your next move:".encode())
+        return self.playerSockets[player].recv(1024).decode()
 
     def validateAndParseInput(self, inp):
         action = inp.lower().split()
@@ -263,13 +268,17 @@ class Hanabi():
             else:
                 handStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() for c in self.hands[p]]))
 
-        for nStr in [cardStr, tokenStr, bombStr, pileStr, discardStr] + handStrs:
-            self.notifyPlayer(player, nStr)
+        notifyStr = '\n'.join([cardStr, tokenStr, bombStr, pileStr, discardStr] + handStrs)
+        self.notifyPlayer(player, notifyStr)
+
+    def notifyAllGameState(self):
+        for player in self.players:
+            self.notifyGameState(player)
 
     def takeTurn(self):
         print()
         player = self.players[self.curPlayerIdx]
-        self.notifyGameState(player)
+        self.notifyAllGameState()
         self.notifyAll(player + "'s turn")
         act = self.getAction(player)
         self.doAction(player, act)
@@ -283,7 +292,7 @@ class Hanabi():
 
     def playGame(self):
         self.setupGame()
-        self.notifyAll("Player order is " + str(self.players))
+        self.notifyAll("Player order is " + ", ".join([str(p) for p in self.players]))
 
         curPlayerIdx = 0
         #play until there are no cards left in the deck
@@ -297,9 +306,17 @@ class Hanabi():
         self.notifyAll(notifyStr)
         self.endGame()
 
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((HOST, PORT))
+s.listen(10)
 
-#h = Hanabi()
-#h.addPlayer('Frank')
-#h.addPlayer('Alison')
-#h.addPlayer('Arthur')
-#h.playGame()
+print("Waiting for Alison...")
+p1conn, p1addr = s.accept()
+print("Waiting for Frank...")
+p2conn, p2addr = s.accept()
+print("Both players connected!")
+
+h = Hanabi()
+h.addPlayer('Alison', p1conn)
+h.addPlayer('Frank', p2conn)
+h.playGame()
