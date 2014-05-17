@@ -7,35 +7,42 @@ class Card():
     num = 0
     color = ''
 
-    notColors = set()
-    notNums = set()
+    possibColors = set()
+    possibNums = set()
 
     def __init__(self, info):
         self.num = info[0]
         self.color = info[1]
-        self.notColors = set()
-        self.notNums = set()
+        self.possibColors = set(['r', 'b', 'y', 'g', 'w'])
+        self.possibNums = set([1,2,3,4,5])
 
     def __str__(self):
         return str(self.num) + self.color
 
+    def getKnownInfoStr(self):
+        if len(self.possibNums) == 5:
+            numStr = '*'
+        else:
+            numStr = ''.join([str(x) for x in sorted(self.possibNums)])
+        if len(self.possibColors) == 5:
+            colorStr = '*'
+        else:
+            colorStr = ''.join(sorted(self.possibColors))
+        return numStr + colorStr
+
     def setNotColor(self, color):
-        self.notColors.add(color)
+        self.possibColors.discard(color)
 
     def setNotNum(self, num):
-        self.notNums.add(num)
+        self.possibNums.discard(num)
 
     def setColor(self, color):
         #should fix this later
-        for col in 'rbygw':
-            if col != color:
-                self.notColors.add(col)
+        self.possibColors = {color}
 
     def setNum(self, num):
         #should fix this later
-        for i in range(1,6):
-            if num != i:
-                self.notNums.add(i)
+        self.possibNums = {num}
 
     def tellAbout(self, info):
         #note: need to check if info is int first to avoid exception
@@ -79,6 +86,9 @@ class Hanabi():
     #note: loss is at 0 bombs instead of 1
     numBombs = 3
 
+    #player whose turn is next
+    curPlayerIdx = 0
+
     def shuffle(self):
         random.shuffle(self.deck)
 
@@ -112,7 +122,7 @@ class Hanabi():
         inp = self.requestMove(player)
         parsed = self.validateAndParseInput(inp)
         while not parsed:
-            notifyPlayer(player, "Invalid move!")
+            self.notifyPlayer(player, "Invalid move!")
             inp = self.requestMove(player)
             parsed = self.validateAndParseInput(inp)
         return parsed
@@ -217,12 +227,34 @@ class Hanabi():
         print("Discard", self.discard)
         self.viewHands()
 
-    def takeTurn(self, player):
+    def notifyGameState(self, player):
+        cardStr = "Cards left: " + str(len(self.deck))
+        tokenStr = "Tokens left: " + str(self.numTokens)
+        bombStr = "Bombs left: " + str(self.numBombs + 1)
+        pileStr = "Piles: " + ' '.join([color+str(num) for color,num in self.piles.items()])
+        discardStr = "Discard: " + ' '.join([color+':'+''.join([str(i) for i in nums]) for color, nums in self.discard.items()])
+
+        handStrs = []
+        for p in self.players:
+            if p != player:
+                handStrs.append(p + ': ' + ' '.join([str(c) for c in self.hands[p]]))
+            else:
+                handStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() for c in self.hands[p]]))
+
+        for nStr in [cardStr, tokenStr, bombStr, pileStr, discardStr] + handStrs:
+            self.notifyPlayer(player, nStr)
+
+    def takeTurn(self):
+        print()
+        player = self.players[self.curPlayerIdx]
+        self.notifyGameState(player)
+        self.notifyAll(player + "'s turn")
         act = self.getAction(player)
         self.doAction(player, act)
         if self.numBombs == 0:
             self.notifyAll("The fireworks explode! 0 points.")
             self.endGame()
+        self.curPlayerIdx = (self.curPlayerIdx + 1) % len(self.players)
 
     def endGame(self):
         exit()
@@ -234,20 +266,10 @@ class Hanabi():
         curPlayerIdx = 0
         #play until there are no cards left in the deck
         while len(self.deck) > 0:
-            print()
-            self.viewGameState()
-            curPlayer = self.players[curPlayerIdx]
-            self.notifyAll(curPlayer + "'s turn")
-            self.takeTurn(curPlayer)
-            curPlayerIdx = (curPlayerIdx + 1) % len(self.players)
+            self.takeTurn()
         #then everybody gets one more turn
         for i in range(len(self.players)):
-            print()
-            self.viewGameState()
-            curPlayer = self.players[curPlayerIdx]
-            self.notifyAll(curPlayer + "'s turn")
-            self.takeTurn(curPlayer)
-            curPlayerIdx = (curPlayerIdx + 1) % len(self.players)
+            self.takeTurn()
 
         notifyStr = "Game over! Final score is " + str(sum(self.piles.values()))
         self.notifyAll(notifyStr)
