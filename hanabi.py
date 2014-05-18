@@ -196,6 +196,7 @@ class Hanabi():
                     self.numTokens += 1
                 wasSuccessful = True
             else:
+                self.discard[played.color].append(played.num)
                 self.numBombs -= 1
                 wasSuccessful = False
             self.hands[player][action[1] - 1] = self.draw()
@@ -258,17 +259,22 @@ class Hanabi():
         cardStr = "Cards left: " + str(len(self.deck))
         tokenStr = "Tokens left: " + str(self.numTokens)
         bombStr = "Bombs left: " + str(self.numBombs + 1)
+        discardStr = "Discard: " + ' '.join([color+':'+''.join([str(i) for i in nums]) for color, nums in sorted(self.discard.items())])
         pileStr = "Piles: " + ' '.join([color+str(num) for color,num in self.piles.items()])
-        discardStr = "Discard: " + ' '.join([color+':'+''.join([str(i) for i in nums]) for color, nums in self.discard.items()])
 
-        handStrs = []
+        knownInfoStrs = ["Known info for other players:"]
+        for p in self.players:
+            if p != player:
+                knownInfoStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() if c is not None else "None" for c in self.hands[p]]))
+
+        handStrs = ["Player hands:"]
         for p in self.players:
             if p != player:
                 handStrs.append(p + ': ' + ' '.join([str(c) for c in self.hands[p]]))
             else:
-                handStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() for c in self.hands[p]]))
+                handStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() if c is not None else "None" for c in self.hands[p]]))
 
-        notifyStr = '\n'.join([cardStr, tokenStr, bombStr, pileStr, discardStr] + handStrs)
+        notifyStr = '\n'.join([cardStr, tokenStr, bombStr, discardStr, '', pileStr] + [''] + knownInfoStrs + [''] + handStrs + [''])
         self.notifyPlayer(player, notifyStr)
 
     def notifyAllGameState(self):
@@ -278,6 +284,7 @@ class Hanabi():
     def takeTurn(self):
         print()
         player = self.players[self.curPlayerIdx]
+        self.notifyAll("--------------------------------------")
         self.notifyAllGameState()
         self.notifyAll(player + "'s turn")
         act = self.getAction(player)
@@ -310,13 +317,18 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind((HOST, PORT))
 s.listen(10)
 
-print("Waiting for Alison...")
-p1conn, p1addr = s.accept()
-print("Waiting for Frank...")
-p2conn, p2addr = s.accept()
-print("Both players connected!")
+numPlayers = 3
+playerNames = []
+conns = []
+for i in range(numPlayers):
+    print("Waiting for player", i+1)
+    conn, addr = s.accept()
+    conn.send("Please enter your name: ".encode())
+    name = conn.recv(1024).decode()
+    conns.append(conn)
+    playerNames.append(name.strip())
 
 h = Hanabi()
-h.addPlayer('Alison', p1conn)
-h.addPlayer('Frank', p2conn)
+for p, c in zip(playerNames, conns):
+    h.addPlayer(p, c)
 h.playGame()
