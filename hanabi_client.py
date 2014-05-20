@@ -25,6 +25,6 @@ while True:
 	print(msgstr)
 	msglist = msgstr.split()
 	#process the msg
-	if msglist[-1].lower() == "move:" or msglist[-1].lower() == "name:":
+	if msglist[-1].lower() == "move:" or msglist[-1].lower() == "name:" or msglist[-1].lower() == "players?" or msglist[-1] == "5:":
 		reply = input()
 		s.send(reply.encode())

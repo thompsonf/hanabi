@@ -261,22 +261,20 @@ class Hanabi():
         cardStr = "Cards left: " + str(len(self.deck))
         tokenStr = "Tokens left: " + str(self.numTokens)
         bombStr = "Bombs left: " + str(self.numBombs + 1)
+        playerOrderStr = "Player order: " + ', '.join(self.players)
         discardStr = "Discard: " + ' '.join([color+':'+''.join([str(i) for i in nums]) for color, nums in sorted(self.discard.items())])
         pileStr = "Piles: " + ' '.join([color+str(num) for color,num in self.piles.items()])
 
-        knownInfoStrs = ["Known info for other players:"]
+        otherPlayerStrs = []
         for p in self.players:
             if p != player:
-                knownInfoStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() if c is not None else "None" for c in self.hands[p]]))
+                otherPlayerStrs.append(p + "'s hand: " + ' '.join([str(c) for c in self.hands[p]]))
+                otherPlayerStrs.append(p + "'s info: " + ' '.join([c.getKnownInfoStr() if c is not None else "None" for c in self.hands[p]]))
+                otherPlayerStrs.append('')
 
-        handStrs = ["Player hands:"]
-        for p in self.players:
-            if p != player:
-                handStrs.append(p + ': ' + ' '.join([str(c) for c in self.hands[p]]))
-            else:
-                handStrs.append(p + ': ' + ' '.join([c.getKnownInfoStr() if c is not None else "None" for c in self.hands[p]]))
+        selfInfoStr = player + "'s info: " + ' '.join([c.getKnownInfoStr() if c is not None else "None" for c in self.hands[player]])
 
-        notifyStr = '\n'.join([cardStr, tokenStr, bombStr, discardStr, '', pileStr] + [''] + knownInfoStrs + [''] + handStrs + [''])
+        notifyStr = '\n'.join([cardStr, tokenStr, bombStr, playerOrderStr, discardStr, '', pileStr, ''] + otherPlayerStrs + [selfInfoStr])
         self.notifyPlayer(player, notifyStr)
 
     def notifyAllGameState(self):
@@ -319,10 +317,27 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind((HOST, PORT))
 s.listen(10)
 
-numPlayers = 3
 playerNames = []
 conns = []
-for i in range(numPlayers):
+
+#wait for first player
+print("Waiting for player 1")
+conn, addr = s.accept()
+conn.send("Please enter your name: ".encode())
+name = conn.recv(1024).decode()
+conns.append(conn)
+playerNames.append(name.strip())
+
+#ask how many players
+conn.send("How many players? ".encode())
+numPlayers = conn.recv(1024).decode()
+while not numPlayers.isdigit() or int(numPlayers) < 2 or int(numPlayers) > 5:
+    conn.send("Please enter a number between 2 and 5: ".encode())
+    numPlayers = conn.recv(1024).decode()
+numPlayers = int(numPlayers)
+
+
+for i in range(1, numPlayers):
     print("Waiting for player", i+1)
     conn, addr = s.accept()
     conn.send("Please enter your name: ".encode())
