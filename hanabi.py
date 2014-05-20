@@ -176,6 +176,8 @@ class Hanabi():
                 pass
             else:
                 return False
+        else:
+            return False
         return action
 
 
