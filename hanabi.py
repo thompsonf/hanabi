@@ -330,7 +330,7 @@ playerNames.append(name.strip())
 
 #ask how many players
 conn.send("How many players? ".encode())
-numPlayers = conn.recv(1024).decode()
+numPlayers = conn.recv(1024).decode().strip()
 while not numPlayers.isdigit() or int(numPlayers) < 2 or int(numPlayers) > 5:
     conn.send("Please enter a number between 2 and 5: ".encode())
     numPlayers = conn.recv(1024).decode()
